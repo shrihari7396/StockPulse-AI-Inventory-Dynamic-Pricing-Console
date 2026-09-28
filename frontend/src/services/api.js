@@ -167,7 +167,9 @@ export async function streamPricingReasoning(productId, callbacks = {}) {
         } else if (eventType === 'complete' && onComplete) {
           try {
             const parsed = JSON.parse(eventData);
-            onComplete(parsed);
+            // Handle both the old format (direct suggestion) and new format (wrapped in suggestion object)
+            const suggestion = parsed.suggestion || parsed;
+            onComplete(suggestion);
           } catch {
             onComplete(eventData);
           }
