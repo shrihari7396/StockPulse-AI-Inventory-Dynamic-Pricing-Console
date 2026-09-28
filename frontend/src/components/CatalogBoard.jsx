@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Flame, Plus, Sparkles, Info, Search } from 'lucide-react';
+import { ShoppingCart, Flame, Plus, Sparkles, Info, Search } from './Icons';
 
 export default function CatalogBoard({
   products,

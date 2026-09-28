@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, RefreshCw, Cpu, Zap, ShoppingBag } from 'lucide-react';
+import { Activity, RefreshCw, Cpu } from './Icons';
 
 export default function Header({
   strategyConfig,

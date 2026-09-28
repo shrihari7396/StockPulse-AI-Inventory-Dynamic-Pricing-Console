@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Layers, DollarSign, Building, BarChart2 } from 'lucide-react';
+import { X, Layers, Building } from './Icons';
 
 export default function ProductDetailModal({ product, onClose }) {
   if (!product) return null;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Flame, Layers, Clock } from 'lucide-react';
+import { AlertCircle, Flame, Layers, Clock } from './Icons';
 
 export default function MetricsBar({
   pendingCount,

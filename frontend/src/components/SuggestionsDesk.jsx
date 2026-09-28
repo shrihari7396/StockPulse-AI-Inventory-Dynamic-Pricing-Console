@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, TrendingUp, TrendingDown, Minus, Package, ShieldCheck, Sparkles, AlertTriangle } from 'lucide-react';
+import { Check, X, TrendingUp, TrendingDown, Package, ShieldCheck, Sparkles, AlertTriangle } from './Icons';
 
 export default function SuggestionsDesk({
   pricingSuggestions,

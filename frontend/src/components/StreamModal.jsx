@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Sparkles, CheckCircle, Terminal } from 'lucide-react';
+import { X, Sparkles, CheckCircle } from './Icons';
 import { streamPricingReasoning } from '../services/api';
 
 export default function StreamModal({ product, onClose, onSuggestionCreated }) {
