@@ -81,7 +81,7 @@ External LLM APIs (Gemini, Groq, Ollama) are subject to network timeouts, rate l
 
 ### Decision
 We implemented a 4-tier resilience pipeline:
-1. **Defensive Gateway**: `LLMGateway` encapsulates HTTP calls with timeout bounds. If the remote provider is unreachable or no API key is configured, it engages an intelligent offline reasoning synthesizer to ensure uninterrupted hackathon demo flow.
+1. **Defensive Gateway**: `LLMGateway` encapsulates HTTP calls with timeout bounds. It supports Gemini, Groq, Ollama, and enterprise **Zycus LiteLLM / Qwen-Cursor** (`https://litellm-qc.zycus.net/v1/chat/completions`) with custom enterprise headers (`product: PC1`, `Cookie`, `Authorization: Bearer`). If the remote provider is unreachable or no API key is configured, it engages an intelligent offline reasoning synthesizer to ensure uninterrupted hackathon demo flow.
 2. **Markdown Sanitation & JSON Parser**: Strips markdown code blocks (` ```json `), sanitizes whitespace, and extracts structured fields.
 3. **Bounds Validation (`BoundsValidator`)**:
    - Clamps price to a safe corridor: `[0.40 * currentPrice, 3.00 * currentPrice]`.

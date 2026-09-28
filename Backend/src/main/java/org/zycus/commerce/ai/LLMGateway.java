@@ -13,26 +13,32 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provider-specific HTTP for Gemini, Groq, Ollama.
+ * Provider-specific HTTP for LiteLLM, OpenAI, Gemini, Groq, Ollama.
  * Returns raw text — parsing, validation, and fallback are handled by caller.
  *
- * Addendum B reference implementation with resilience.
+ * Configured with support for custom headers (e.g. product, Cookie, Authorization).
  */
 @Component
 @Slf4j
 public class LLMGateway {
 
-    @Value("${llm.provider:gemini}")
+    @Value("${llm.provider:litellm}")
     private String provider;
 
     @Value("${llm.api-key:}")
     private String apiKey;
 
-    @Value("${llm.model:gemini-1.5-flash}")
+    @Value("${llm.model:qwen-cursor}")
     private String model;
 
-    @Value("${llm.base-url:https://generativelanguage.googleapis.com}")
+    @Value("${llm.base-url:https://litellm-qc.zycus.net}")
     private String baseUrl;
+
+    @Value("${llm.header.product:PC1}")
+    private String productHeader;
+
+    @Value("${llm.header.cookie:}")
+    private String cookieHeader;
 
     private final RestClient http = RestClient.create();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -46,14 +52,25 @@ public class LLMGateway {
         try {
             return switch (provider.toLowerCase()) {
                 case "gemini" -> callGemini(prompt);
-                case "groq" -> callOpenAICompatible(prompt, baseUrl + "/openai/v1/chat/completions");
-                case "ollama" -> callOpenAICompatible(prompt, baseUrl + "/v1/chat/completions");
-                default -> throw new IllegalStateException("Unknown provider: " + provider);
+                case "groq" -> callOpenAICompatible(prompt, resolveChatCompletionsUrl("/openai/v1/chat/completions"));
+                case "ollama" -> callOpenAICompatible(prompt, resolveChatCompletionsUrl("/v1/chat/completions"));
+                case "litellm", "openai", "zycus" -> callOpenAICompatible(prompt, resolveChatCompletionsUrl("/v1/chat/completions"));
+                default -> callOpenAICompatible(prompt, resolveChatCompletionsUrl("/v1/chat/completions"));
             };
         } catch (Exception ex) {
             log.error("LLM Gateway call failed ({}: {}). Falling back gracefully.", ex.getClass().getSimpleName(), ex.getMessage());
             return generateOfflineSimulatedAIResponse(prompt);
         }
+    }
+
+    private String resolveChatCompletionsUrl(String defaultSuffix) {
+        if (baseUrl.endsWith("/chat/completions")) {
+            return baseUrl;
+        }
+        if (baseUrl.endsWith("/")) {
+            return baseUrl.substring(0, baseUrl.length() - 1) + defaultSuffix;
+        }
+        return baseUrl + defaultSuffix;
     }
 
     private String callGemini(String prompt) {
@@ -110,7 +127,17 @@ public class LLMGateway {
             spec.header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey);
         }
 
+        if (productHeader != null && !productHeader.isBlank()) {
+            spec.header("product", productHeader);
+        }
+
+        if (cookieHeader != null && !cookieHeader.isBlank()) {
+            spec.header(HttpHeaders.COOKIE, cookieHeader);
+        }
+
+        log.info("Sending request to LLM endpoint '{}' using model '{}'...", url, model);
         String rawResponse = spec.retrieve().body(String.class);
+        log.info("Received LLM response successfully.");
 
         try {
             JsonNode root = objectMapper.readTree(rawResponse);
@@ -140,7 +167,7 @@ public class LLMGateway {
                 "recommendedPrice": 62.99,
                 "changeDirection": "INCREASE",
                 "confidence": 0.94,
-                "reasoning": "AI Model (Gemini Flash Advisor): Demand velocity spiked 3.5x over category peers. High conversion velocity suggests low price elasticity. Recommending a +14.5% price increase to capture consumer surplus during viral momentum."
+                "reasoning": "AI Model (Qwen/LiteLLM Advisor): Demand velocity spiked 3.5x over category peers. High conversion velocity suggests low price elasticity. Recommending a +14.5% price increase to capture consumer surplus during viral momentum."
               },
               "reorder": {
                 "recommendedQuantity": 48,
@@ -157,7 +184,7 @@ public class LLMGateway {
                 "recommendedPrice": 27.99,
                 "changeDirection": "INCREASE",
                 "confidence": 0.91,
-                "reasoning": "AI Model (Gemini Flash Advisor): Inventory has fallen below the reorder threshold while velocity remains active. Recommending a +12% price protection adjustment to stretch remaining stock cover while replenishment is in transit."
+                "reasoning": "AI Model (Qwen/LiteLLM Advisor): Inventory has fallen below the reorder threshold while velocity remains active. Recommending a +12% price protection adjustment to stretch remaining stock cover while replenishment is in transit."
               },
               "reorder": {
                 "recommendedQuantity": 38,
@@ -174,7 +201,7 @@ public class LLMGateway {
                 "recommendedPrice": 49.99,
                 "changeDirection": "HOLD",
                 "confidence": 0.88,
-                "reasoning": "AI Model (Gemini Flash Advisor): Stock levels and sales velocity are in commercial equilibrium. Holding current retail price."
+                "reasoning": "AI Model (Qwen/LiteLLM Advisor): Stock levels and sales velocity are in commercial equilibrium. Holding current retail price."
               },
               "reorder": {
                 "recommendedQuantity": 20,

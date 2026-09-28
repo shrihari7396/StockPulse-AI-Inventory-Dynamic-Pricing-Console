@@ -1,0 +1,33 @@
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build outputs
+target/
+dist/
+build/
+Backend/target/
+frontend/dist/
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# IDE & Editor files
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+# OS / Temporary
+Thumbs.db
+Desktop.ini
+.DS_Store
+npm
+TEMP.TXT
