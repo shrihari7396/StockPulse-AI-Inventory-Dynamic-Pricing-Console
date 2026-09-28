@@ -13,6 +13,8 @@ import org.zycus.domain.model.TriggerReason;
 import org.zycus.service.ProductService;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -37,10 +39,13 @@ public class SSEStreamController {
             try {
                 Product product = productService.getProductById(id);
 
-                // Step 1: Send initial status
+                // Step 1: Send initial status - FIXED: Properly format as SSE event
+                Map<String, String> statusData = new HashMap<>();
+                statusData.put("message", "Initializing StockPulse AI Commerce Advisor for SKU " + product.getSku() + "...");
                 emitter.send(SseEmitter.event()
                         .name("status")
-                        .data("Initializing StockPulse AI Commerce Advisor for SKU " + product.getSku() + "..."));
+                        .data(statusData));
+
                 Thread.sleep(400);
 
                 // Step 2: Stream reasoning tokens
@@ -55,9 +60,11 @@ public class SSEStreamController {
 
                 String[] words = reasoningDraft.split(" ");
                 for (String word : words) {
+                    Map<String, String> tokenData = new HashMap<>();
+                    tokenData.put("content", word + " ");
                     emitter.send(SseEmitter.event()
                             .name("token")
-                            .data(word + " "));
+                            .data(tokenData));
                     Thread.sleep(80);
                 }
 
@@ -66,10 +73,13 @@ public class SSEStreamController {
                         product, TriggerReason.MANUAL, "Generated via real-time SSE stream session."
                 );
 
-                String suggestionJson = objectMapper.writeValueAsString(suggestion);
+                Map<String, Object> completeData = new HashMap<>();
+                completeData.put("suggestion", suggestion);
+                completeData.put("message", "AI reasoning complete");
+                
                 emitter.send(SseEmitter.event()
                         .name("complete")
-                        .data(suggestionJson));
+                        .data(completeData));
 
                 emitter.complete();
                 log.info("SSE Stream completed successfully for product ID '{}'", id);
@@ -79,7 +89,9 @@ public class SSEStreamController {
             } catch (Exception ex) {
                 log.error("Error during SSE stream generation: {}", ex.getMessage(), ex);
                 try {
-                    emitter.send(SseEmitter.event().name("error").data(ex.getMessage()));
+                    Map<String, String> errorData = new HashMap<>();
+                    errorData.put("error", ex.getMessage());
+                    emitter.send(SseEmitter.event().name("error").data(errorData));
                 } catch (Exception ignored) {}
                 emitter.completeWithError(ex);
             }

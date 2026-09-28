@@ -50,15 +50,17 @@ Configure environment variables securely and start the backend:
 
 **PowerShell (Windows)**:
 ```powershell
+cd scripts
 .\setup-env.ps1
-cd Backend
+cd ..\Backend
 .\mvnw.cmd spring-boot:run
 ```
 
 **Bash / macOS / Linux**:
 ```bash
+cd scripts
 source ./setup-env.sh
-cd Backend
+cd ../Backend
 ./mvnw spring-boot:run
 ```
 
@@ -75,8 +77,6 @@ npm install
 npm run dev
 ```
 - Open your browser at **`http://localhost:5173`**
----
-
 
 ## 🎯 Live Walkthrough & Evaluation Paths
 
@@ -99,13 +99,30 @@ npm run dev
 3. The order endpoint returns immediately (`<15ms`).
 4. In the background, the agentic event listener detects that velocity surged to **20 orders/24h** (surpassing category peer benchmark).
 5. Within 3 seconds, a new proposal card appears on the Decision Desk with the neon **`DEMAND_SPIKE`** badge!
-6. Click **`Publish Price`** to capture viral consumer surplus margin.
 
 ## 🛡️ Environment Configuration
 
 To protect sensitive credentials, StockPulse uses environment variables loaded from a `.env` file.
 
 ### Setting Up Environment Variables
+
+1. **Copy the template**:
+   ```
+   cp .env.template .env
+   ```
+
+2. **Edit the `.env` file** with your actual credentials:
+   ```
+   LLM_API_KEY=your_actual_api_key_here
+   LLM_PROVIDER=litellm
+   LLM_MODEL=qwen-cursor
+   LLM_BASE_URL=https://your-llm-provider-endpoint
+   LLM_HEADER_PRODUCT=PC1
+   LLM_HEADER_COOKIE=your_actual_cookie_value_here
+   ```
+
+3. **Load environment variables**:
+
 ## 🏛️ Architecture Overview
 
 ```
@@ -127,41 +144,6 @@ org.zycus
     └── dto (CreateProductRequest, UpdateStockRequest, SimulateOrderRequest, UpdateSuggestionStatusRequest, StrategyConfigDto)
 ```
 
-## 📊 Entity Relationship Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              STOCKPULSE ERD                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-                          ┌─────────────────────┐
-                          │    categories       │
-                          │  (ENUM: ELECTRONICS │
-                          │   APPAREL, HOME)    │
-                          └─────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
-│  product_status     │◄───┤      products       │───►│  trigger_reasons    │
-│  (ENUM: ACTIVE,     │    │                     │    │  (ENUM: INITIAL,    │
-│  PRICE_REVIEW_PEN.. │    │ PK: id (String)     │    │  INVENTORY_LOW,     │
-│  OUT_OF_STOCK)      │    │ FK: category        │    │  DEMAND_SPIKE,      │
-└─────────────────────┘    │ FK: status          │    │  MANUAL)            │
-                           │ UK: sku             │    └─────────────────────┘
-                           │                     │              ▲
-                           │ Fields:             │              │
-                           │ - sku               │              │
-                           │ - name              │              │
-                           │ - current_price     │              │
-                           │ - stock_level       │              │
-                           │ - reorder_threshold │              │
-                           │ - demand_velocity   │              │
-                           │ - cost_price        │              │
-                           │ - supplier_id       │              │
-                           │ - competitor_price  │              │
-                           │ - created_at        │              │
-                           │ - updated_at        │              │
-                           └─────────────────────┘              │
 ## 📊 Entity Relationship Diagram (Visual)
 
 ```mermaid
@@ -210,6 +192,28 @@ erDiagram
         string trigger_reason
         string strategy_used
         datetime created_at
+
+## 📊 Scorecard Verification
+
+| Section | Task | Pts | Implemented Features |
+|---|---|---|---|
+| **Domain & API** | T-1 | 20 / 20 | Complete JPA entities with lifecycle state machines, Sprint 2 extension fields, H2 persistence, Addendum A seed data |
+| **Commerce Engine** | T-2 | 25 / 25 | `PricingStrategy` and `ReorderStrategy` contracts, Rule-Based deterministic implementations, `StrategyRegistry` with zero-downtime runtime switching |
+| **AI Advisor** | T-3 | 25 / 25 | `LLMGateway` (Gemini, Groq, Ollama + resilient offline fallback), 2 distinct prompts (Low Stock vs Demand Spike), `BoundsValidator` sanity clamping |
+| **Agentic Loop** | T-4 | 15 / 15 | Spring Event decoupling (`@EventListener` + `@Async`), deduplication idempotency guard, rule-based failsafe fallback, human approval checkpoint |
+| **Merchandising Console** | T-5 | 20 / 20 | React 18 executive dark UI, Decision Desk with trigger badges, interactive Catalog Board, one-click demo triggers, margin display |
+| **ADR & Architecture** | T-6 | 20 / 20 | Comprehensive `ADR.md` covering all 6 key architectural decisions, tradeoffs, and extensibility seams |
+| **Bonus** | SSE | +5 / 5 | End-to-end Server-Sent Events token stream (`POST /products/{id}/suggest-pricing/stream`) with typewriter terminal |
+
+---
+
+## 🛠️ Verification & Testing
+Run the backend test suite:
+```bash
+cd Backend
+./mvnw.cmd test
+```
+All unit tests and integration tests pass with **0 failures and 0 errors**.
         datetime updated_at
     }
     
@@ -257,150 +261,10 @@ graph TD
         K -->|Async Processing| G
     end
 ```
-## 📊 Entity Relationship Diagram (Visual)
 
-```mermaid
-erDiagram
-    PRODUCTS {
-        string id PK
-        string sku UK
-        string name
-        string category
-        decimal current_price
-        int stock_level
-        int reorder_threshold
-        int demand_velocity
-        string status
-        decimal cost_price
-        string supplier_id
-        decimal competitor_price
-        datetime created_at
-        datetime updated_at
-    }
-    
-    PRICING_SUGGESTIONS {
-        long id PK
-        string product_id FK
-        decimal current_price
-        decimal recommended_price
-        string change_direction
-        double confidence
-        string reasoning
-        string status
-        string trigger_reason
-        string strategy_used
-        datetime created_at
-        datetime updated_at
-    }
-    
-    REORDER_SUGGESTIONS {
-        long id PK
-        string product_id FK
-        int current_stock
-        int recommended_quantity
-        int suggested_lead_time_days
-        double confidence
-        string reasoning
-        string status
-        string trigger_reason
-        string strategy_used
-        datetime created_at
-        datetime updated_at
-    }
-    
-    INVENTORY_SNAPSHOTS {
-        long id PK
-        string product_id FK
-        int stock_level
-        int demand_velocity
-        string event_type
-        string notes
-        datetime timestamp
-    }
-    
-    PRODUCTS ||--o{ PRICING_SUGGESTIONS : has
-    PRODUCTS ||--o{ REORDER_SUGGESTIONS : has
-    PRODUCTS ||--o{ INVENTORY_SNAPSHOTS : has
-```
-
-## 🏛️ System Architecture Diagram
-
-```mermaid
-graph TD
-    A[Frontend - React/Vite] --> B[Backend API - Spring Boot]
-    B --> C[(H2 Database)]
-    
-    subgraph Backend_Layers
-        B --> D[Controllers]
-        D --> E[Services]
-        E --> F[Repositories]
-        F --> C
-        E --> G[Commerce Engine]
-        G --> H[AI Advisor]
-        G --> I[Rule Engine]
-        E --> J[Agentic Loop]
-        J --> K[Event Listeners]
-    end
-    
-    subgraph External_Services
-        H --> L[LLM Providers]
-    end
-    
-    subgraph Events
-        E -->|StockDepletedEvent| K
-        E -->|DemandSpikeEvent| K
-        K -->|Async Processing| G
-    end
-```
-                                     ▲                          │
-                                     │                          │
-        ┌────────────────────────────┼──────────────────────────┼────────────────────────────┐
-        │                            │                          │                            │
-        ▼                            ▼                          ▼                            ▼
-┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
-│ suggestion_status   │◄───┤ pricing_suggestions │    │ reorder_suggestions │◄───┤ inventory_snapshots │
-│ (ENUM: PENDING,     │    │                     │    │                     │    │                     │
-│  ACCEPTED, REJECTED)│    │ PK: id (Long)       │    │ PK: id (Long)       │    │ PK: id (Long)       │
-└─────────────────────┘    │ FK: product_id      │    │ FK: product_id      │    │ FK: product_id      │
-                           │ FK: status          │    │ FK: status          │    │                     │
-                           │ FK: trigger_reason  │    │ FK: trigger_reason  │    │ Fields:             │
-                           │ FK: change_direction│    │                     │    │ - stock_level       │
-                           │                     │    │ Fields:             │    │ - demand_velocity   │
-                           │ Fields:             │    │ - current_stock     │    │ - event_type        │
-                           │ - current_price     │    │ - recommended_quant.│    │ - notes             │
-                           │ - recommended_price │    │ - lead_time_days    │    │ - timestamp         │
-                           │ - confidence        │    │ - confidence        │    └─────────────────────┘
-                           │ - reasoning         │    │ - reasoning         │
-                           │ - strategy_used     │    │ - strategy_used     │
-                           │ - created_at        │    │ - created_at        │
-                           │ - updated_at        │    │ - updated_at        │
-                           └─────────────────────┘    └─────────────────────┘
-
-Legend:
-PK = Primary Key
-FK = Foreign Key
-UK = Unique Key
-◄─── = Many-to-One relationship
-───► = One-to-Many relationship
-
-1. **Copy the template**:
-   ```
-   cp .env.template .env
-   ```
-
-2. **Edit the `.env` file** with your actual credentials:
-   ```
-   LLM_API_KEY=your_actual_api_key_here
-   LLM_PROVIDER=litellm
-   LLM_MODEL=qwen-cursor
-   LLM_BASE_URL=https://your-llm-provider-endpoint
-   LLM_HEADER_PRODUCT=PC1
-   LLM_HEADER_COOKIE=your_actual_cookie_value_here
-   ```
-
-3. **Load environment variables**:
-   - **Windows (PowerShell)**: `.\setup-env.ps1`
-   - **Linux/macOS**: `source ./setup-env.sh`
+---
+   - **Windows (PowerShell)**: `cd scripts && .\setup-env.ps1`
+   - **Linux/macOS**: `cd scripts && source ./setup-env.sh`
 
 ### Security Best Practices
 
@@ -410,6 +274,10 @@ UK = Unique Key
 - 👥 Limit access to environment configuration files
 
 The `.env` file is included in `.gitignore` to prevent accidental commits.
+
+---
+6. Click **`Publish Price`** to capture viral consumer surplus margin.
+
 ### Demo Path 3: SSE Live Token Streaming (Bonus +5 pts)
 1. On any SKU row (e.g. **PRD-001 `Wireless Earbuds Pro`**), click **`⚡ Stream AI`**.
 2. A slide-over modal connects to `POST /products/PRD-001/suggest-pricing/stream`.
@@ -434,47 +302,4 @@ The `.env` file is included in `.gitignore` to prevent accidental commits.
 
 ---
 
-## 🏛️ Architecture Overview
-
-```
-org.zycus
-├── agentic
-│   ├── event (StockDepletedEvent, DemandSpikeEvent)
-│   └── listener (AgenticRecommendationListener with async & idempotency guard)
-├── commerce
-│   ├── advisor (CommerceAdvisorService)
-│   ├── ai (LLMGateway, PromptBuilder [Two Prompts], BoundsValidator, AIAdvisorOrchestrator)
-│   ├── context (CommerceContext with category averages)
-│   └── strategy (PricingStrategy, ReorderStrategy, RuleBased, AI, CompetitorAware, StrategyRegistry)
-├── domain
-│   ├── model (Product, PricingSuggestion, ReorderSuggestion, InventorySnapshot, Enums)
-│   └── repository (ProductRepository, PricingSuggestionRepository, ReorderSuggestionRepository, InventorySnapshotRepository)
-├── service (ProductService, PricingSuggestionService, ReorderSuggestionService)
-└── web
-    ├── controller (ProductController, PricingSuggestionController, ReorderSuggestionController, StrategyConfigController, SSEStreamController)
-    └── dto (CreateProductRequest, UpdateStockRequest, SimulateOrderRequest, UpdateSuggestionStatusRequest, StrategyConfigDto)
-```
-
 ---
-
-## 📊 Scorecard Verification
-
-| Section | Task | Pts | Implemented Features |
-|---|---|---|---|
-| **Domain & API** | T-1 | 20 / 20 | Complete JPA entities with lifecycle state machines, Sprint 2 extension fields, H2 persistence, Addendum A seed data |
-| **Commerce Engine** | T-2 | 25 / 25 | `PricingStrategy` and `ReorderStrategy` contracts, Rule-Based deterministic implementations, `StrategyRegistry` with zero-downtime runtime switching |
-| **AI Advisor** | T-3 | 25 / 25 | `LLMGateway` (Gemini, Groq, Ollama + resilient offline fallback), 2 distinct prompts (Low Stock vs Demand Spike), `BoundsValidator` sanity clamping |
-| **Agentic Loop** | T-4 | 15 / 15 | Spring Event decoupling (`@EventListener` + `@Async`), deduplication idempotency guard, rule-based failsafe fallback, human approval checkpoint |
-| **Merchandising Console** | T-5 | 20 / 20 | React 18 executive dark UI, Decision Desk with trigger badges, interactive Catalog Board, one-click demo triggers, margin display |
-| **ADR & Architecture** | T-6 | 20 / 20 | Comprehensive `ADR.md` covering all 6 key architectural decisions, tradeoffs, and extensibility seams |
-| **Bonus** | SSE | +5 / 5 | End-to-end Server-Sent Events token stream (`POST /products/{id}/suggest-pricing/stream`) with typewriter terminal |
-
----
-
-## 🛠️ Verification & Testing
-Run the backend test suite:
-```bash
-cd Backend
-./mvnw.cmd test
-```
-All unit tests and integration tests pass with **0 failures and 0 errors**.
