@@ -55,15 +55,13 @@ Imagine you run an e-commerce store with 8 products. Every day:
 
 StockPulse **automates** this entire process using an **Agentic AI Loop**:
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   OBSERVE    │────▶│    REASON    │────▶│     ACT      │────▶│  CHECKPOINT  │
-│              │     │              │     │              │     │              │
-│ Stock drops  │     │ AI analyzes  │     │ Queue price  │     │ Human reviews│
-│ below 15?    │     │ context and  │     │ and reorder  │     │ and approves │
-│ Demand spikes│     │ recommends   │     │ suggestions  │     │ or rejects   │
-│ to 3x avg?   │     │ optimal moves│     │ automatically│     │              │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+```mermaid
+flowchart LR
+    A["<b>OBSERVE</b><br/>Stock drops below 15?<br/>Demand spikes to 3x avg?"]
+    B["<b>REASON</b><br/>AI analyzes context and<br/>recommends optimal moves"]
+    C["<b>ACT</b><br/>Queue price and reorder<br/>suggestions automatically"]
+    D["<b>CHECKPOINT</b><br/>Human reviews and<br/>approves or rejects"]
+    A --> B --> C --> D
 ```
 
 The key insight: **AI suggests, but humans approve.** No price or stock change happens without a merchandiser clicking "Accept."
@@ -72,61 +70,47 @@ The key insight: **AI suggests, but humans approve.** No price or stock change h
 
 ## 2. The Big Picture — How It All Fits Together
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    BROWSER (React 18 + Vite)                        │
-│                                                                     │
-│  ┌──────────┐  ┌─────────────────┐  ┌──────────────┐  ┌─────────┐ │
-│  │  Header   │  │ Metrics Bar     │  │ Suggestions  │  │ Catalog │ │
-│  │ +Strategy │  │ (KPI Dashboard) │  │ Desk (Review)│  │ Board   │ │
-│  │ Switcher  │  │                 │  │              │  │         │ │
-│  └──────────┘  └─────────────────┘  └──────────────┘  └─────────┘ │
-│                         │                                           │
-│                  Polls every 3 seconds                              │
-│                  (GET /products, GET /pricing-suggestions, etc.)    │
-└─────────────────────────────┬───────────────────────────────────────┘
-                              │ HTTP (REST API)
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                   SPRING BOOT BACKEND (Port 8080)                   │
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────┐     │
-│  │  Controllers (REST API Layer)                              │     │
-│  │  ProductController, PricingSuggestionController,           │     │
-│  │  ReorderSuggestionController, StrategyConfigController,    │     │
-│  │  SSEStreamController                                       │     │
-│  └────────────────────────┬───────────────────────────────────┘     │
-│                           ▼                                         │
-│  ┌────────────────────────────────────────────────────────────┐     │
-│  │  Services (Business Logic)                                 │     │
-│  │  ProductService, PricingSuggestionService,                 │     │
-│  │  ReorderSuggestionService                                  │     │
-│  └────────────────────────┬───────────────────────────────────┘     │
-│                           │                                         │
-│               ┌───────────┼──────────────┐                          │
-│               ▼           ▼              ▼                          │
-│  ┌───────────────┐ ┌───────────┐ ┌────────────────────┐            │
-│  │ Commerce      │ │ Event     │ │ Repositories       │            │
-│  │ Engine        │ │ System    │ │ (Database Access)   │            │
-│  │               │ │           │ │                     │            │
-│  │ Strategies:   │ │ Triggers: │ │ ProductRepository   │            │
-│  │ ├ RuleBased   │ │ ├ StockDe-│ │ PricingSuggestion-  │            │
-│  │ ├ AI Advisor  │ │ │ pleted  │ │   Repository        │            │
-│  │ └ Competitor  │ │ └ Demand  │ │ ReorderSuggestion-  │            │
-│  │   Aware       │ │   Spike   │ │   Repository        │            │
-│  │               │ │           │ │ InventorySnapshot-  │            │
-│  │ StrategyReg-  │ │ Agentic   │ │   Repository        │            │
-│  │ istry (Hot    │ │ Listener  │ │                     │            │
-│  │ Swap!)        │ │ (Async)   │ │                     │            │
-│  └───────────────┘ └───────────┘ └────────────────────┘            │
-│                                           │                         │
-│                                           ▼                         │
-│                                  ┌─────────────────┐               │
-│                                  │  H2 In-Memory   │               │
-│                                  │  Database        │               │
-│                                  │  (stockpulse)    │               │
-│                                  └─────────────────┘               │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Browser["BROWSER (React 18 + Vite)"]
+        direction LR
+        H["Header<br/>+ Strategy Switcher"]
+        M["Metrics Bar<br/>(KPI Dashboard)"]
+        S["Suggestions Desk<br/>(Review)"]
+        C["Catalog Board"]
+    end
+
+    Browser -- "HTTP REST API<br/>Polls every 3 seconds<br/>(GET /products, GET /pricing-suggestions, etc.)" --> Ctrl
+
+    subgraph Backend["SPRING BOOT BACKEND (Port 8080)"]
+        Ctrl["<b>Controllers (REST API Layer)</b><br/>ProductController, PricingSuggestionController,<br/>ReorderSuggestionController, StrategyConfigController,<br/>SSEStreamController"]
+        Svc["<b>Services (Business Logic)</b><br/>ProductService, PricingSuggestionService,<br/>ReorderSuggestionService"]
+
+        subgraph Engine["Commerce Engine"]
+            direction TB
+            Strat["Strategies:<br/>RuleBased / AI Advisor / CompetitorAware"]
+            Reg["StrategyRegistry<br/>(Hot Swap!)"]
+        end
+
+        subgraph Events["Event System"]
+            direction TB
+            Trig["Triggers:<br/>StockDepleted / DemandSpike"]
+            Lis["Agentic Listener<br/>(Async)"]
+        end
+
+        subgraph Repos["Repositories (Database Access)"]
+            direction TB
+            R1["ProductRepository<br/>PricingSuggestionRepository<br/>ReorderSuggestionRepository<br/>InventorySnapshotRepository"]
+        end
+
+        DB[("H2 In-Memory Database<br/>(stockpulse)")]
+
+        Ctrl --> Svc
+        Svc --> Engine
+        Svc --> Events
+        Svc --> Repos
+        Repos --> DB
+    end
 ```
 
 ---
@@ -399,25 +383,12 @@ public enum TriggerReason { INITIAL, INVENTORY_LOW, DEMAND_SPIKE, MANUAL }
 
 Products move through states based on business events:
 
-```
-              ┌──────────────────────────────────────┐
-              │                                      │
-              ▼                                      │
-         ┌─────────┐    Stock drops    ┌───────────────────────┐
-         │  ACTIVE  │────below───────▶ │ PRICE_REVIEW_PENDING  │
-         │         │    threshold      │                       │
-         └─────────┘                   └───────────────────────┘
-              ▲                                  │
-              │                                  │
-              │   Merchandiser accepts           │
-              │   suggestion → price updates     │
-              └──────────────────────────────────┘
-              │
-              │ Stock hits 0
-              ▼
-        ┌──────────────┐
-        │ OUT_OF_STOCK  │
-        └──────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE
+    ACTIVE --> PRICE_REVIEW_PENDING : Stock drops below threshold
+    PRICE_REVIEW_PENDING --> ACTIVE : Merchandiser accepts suggestion, price updates
+    ACTIVE --> OUT_OF_STOCK : Stock hits 0
 ```
 
 ---
@@ -656,30 +627,20 @@ Because multiple HTTP requests may hit the server simultaneously. Regular `HashM
 
 The AI subsystem has 4 components working together:
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                   AI ADVISOR PIPELINE                     │
-│                                                          │
-│  ┌──────────────┐    ┌────────────┐    ┌──────────────┐ │
-│  │ PromptBuilder │──▶│ LLMGateway │──▶│BoundsValidator│ │
-│  │              │    │            │    │              │ │
-│  │ Builds rich  │    │ Sends HTTP │    │ Ensures AI   │ │
-│  │ context-aware│    │ to Gemini/ │    │ output is    │ │
-│  │ prompts with │    │ Groq/      │    │ safe (price  │ │
-│  │ product data │    │ Ollama/    │    │ not 0 or     │ │
-│  │              │    │ LiteLLM    │    │ 99999)       │ │
-│  └──────────────┘    └────────────┘    └──────────────┘ │
-│          │                  │                   │        │
-│          │                  │ (if LLM fails)    │        │
-│          │                  ▼                   │        │
-│          │           ┌────────────┐              │        │
-│          │           │ Offline    │              │        │
-│          │           │ Fallback   │              │        │
-│          │           │ (hardcoded │              │        │
-│          │           │ smart      │              │        │
-│          │           │ response)  │              │        │
-│          │           └────────────┘              │        │
-└──────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Pipeline["AI ADVISOR PIPELINE"]
+        direction LR
+        PB["<b>PromptBuilder</b><br/>Builds rich context-aware<br/>prompts with product data"]
+        LG["<b>LLMGateway</b><br/>Sends HTTP to Gemini /<br/>Groq / Ollama / LiteLLM"]
+        BV["<b>BoundsValidator</b><br/>Ensures AI output is safe<br/>(price not 0 or 99999)"]
+        FB["<b>Offline Fallback</b><br/>(hardcoded smart response)"]
+
+        PB --> LG
+        LG --> BV
+        LG -. "if LLM fails" .-> FB
+        FB --> BV
+    end
 ```
 
 #### 5.6.1 PromptBuilder — Context-Aware Prompt Engineering
@@ -777,31 +738,23 @@ This is the **"agentic" part** — the system that makes decisions **autonomousl
 
 #### 5.7.1 How Spring Events Work
 
-```
-ProductService.simulateOrder()
-    │
-    │ stock < threshold?
-    │         │
-    │         ▼
-    │  eventPublisher.publishEvent(
-    │      new StockDepletedEvent("PRD-003", 8, 15)
-    │  )
-    │         │
-    │         │  Spring's internal event bus delivers this to...
-    │         ▼
-    │  AgenticRecommendationListener.onStockDepleted()
-    │         │
-    │         │  @Async → runs in SEPARATE THREAD
-    │         │           (doesn't block the HTTP response!)
-    │         ▼
-    │  commerceAdvisorService.generatePricingSuggestion(...)
-    │  commerceAdvisorService.generateReorderSuggestion(...)
-    │         │
-    │         ▼
-    │  Suggestions saved to database with status = PENDING
-    │
-    ▼
-HTTP Response returns immediately (< 15ms)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant PS as ProductService.simulateOrder()
+    participant EP as Spring Event Bus
+    participant L as AgenticRecommendationListener
+    participant CA as CommerceAdvisorService
+    participant DB as Database
+
+    PS->>PS: stock < threshold?
+    PS->>EP: publishEvent(StockDepletedEvent("PRD-003", 8, 15))
+    Note over PS: HTTP response returns immediately (< 15ms)
+    EP->>L: onStockDepleted()
+    Note over L: @Async runs in SEPARATE THREAD<br/>(doesn't block the HTTP response)
+    L->>CA: generatePricingSuggestion(...)
+    L->>CA: generateReorderSuggestion(...)
+    CA->>DB: Save suggestions with status = PENDING
 ```
 
 #### 5.7.2 Idempotency Guard — Preventing Duplicate Suggestions
@@ -940,15 +893,16 @@ Notice **PRD-003** is pre-configured with stock below threshold (8 < 15) and has
 
 ### 6.1 React Architecture & Component Tree
 
-```
-<App>                              ← Root: holds ALL state, passes down via props
-├── <Header>                       ← Logo, live pulse indicator, strategy switcher
-├── <MetricsBar>                   ← 4 KPI cards with animated numbers
-├── <SuggestionsDesk>              ← Lists all PENDING suggestions with Accept/Reject
-├── <CatalogBoard>                 ← Interactive product table with demo actions
-├── <StreamModal>                  ← (conditional) SSE live reasoning stream
-├── <ProductDetailModal>           ← (conditional) Sprint 2 extensibility info
-└── <div className="toast-container"> ← Toast notifications
+```mermaid
+flowchart TB
+    App["<b>&lt;App&gt;</b><br/>Root: holds ALL state, passes down via props"]
+    App --> Header["<b>&lt;Header&gt;</b><br/>Logo, live pulse indicator, strategy switcher"]
+    App --> Metrics["<b>&lt;MetricsBar&gt;</b><br/>4 KPI cards with animated numbers"]
+    App --> Desk["<b>&lt;SuggestionsDesk&gt;</b><br/>Lists all PENDING suggestions with Accept/Reject"]
+    App --> Catalog["<b>&lt;CatalogBoard&gt;</b><br/>Interactive product table with demo actions"]
+    App --> Stream["<b>&lt;StreamModal&gt;</b><br/>(conditional) SSE live reasoning stream"]
+    App --> Detail["<b>&lt;ProductDetailModal&gt;</b><br/>(conditional) Sprint 2 extensibility info"]
+    App --> Toast["<b>toast-container</b><br/>Toast notifications"]
 ```
 
 ### 6.2 State Management & Polling
@@ -1097,137 +1051,127 @@ export async function streamPricingReasoning(productId, callbacks) {
 
 ### 8.1 Flow 1: Customer Places an Order → Automatic AI Suggestion
 
-```
-User clicks "🔥 +5 Viral" on PRD-008 (Hoodie)
-         │
-         ▼
-[Frontend] POST /products/PRD-008/orders  {"quantity": 5}
-         │
-         ▼
-[ProductController] simulateOrder("PRD-008", 5)
-         │
-         ▼
-[ProductService.simulateOrder()]
-  ├─ stock: 11 → 6
-  ├─ velocity: 15 → 20
-  ├─ Save to DB
-  ├─ Record InventorySnapshot
-  ├─ Check: 6 < 12 (threshold)? YES → publish StockDepletedEvent
-  └─ Check: 20 >= 2.5x categoryAvg? YES → publish DemandSpikeEvent
-         │
-         ▼
-[HTTP Response] 200 OK → {"id":"PRD-008", "stockLevel":6, "demandVelocity":20}
-         │
-         │ (Meanwhile, ASYNC in background thread...)
-         ▼
-[AgenticRecommendationListener.onDemandSpike()]
-  ├─ Check deduplication: any PENDING DEMAND_SPIKE for PRD-008? NO
-  ├─ commerceAdvisorService.generatePricingSuggestion(PRD-008, DEMAND_SPIKE)
-  │    ├─ StrategyRegistry → get active strategy (e.g., "AI")
-  │    ├─ AIPricingStrategy.evaluate()
-  │    │    ├─ PromptBuilder.buildDemandSpikePrompt() → builds rich context prompt
-  │    │    ├─ LLMGateway.callLLM(prompt) → sends to Gemini/Groq/fallback
-  │    │    ├─ BoundsValidator.validatePricing() → clamp to safe range
-  │    │    └─ Return: price=$62.99, confidence=0.94, direction=INCREASE
-  │    ├─ Save PricingSuggestion (status=PENDING) to DB
-  │    └─ Set product status to PRICE_REVIEW_PENDING
-  └─ commerceAdvisorService.generateReorderSuggestion(PRD-008, DEMAND_SPIKE)
-         │
-         │ (~3 seconds later...)
-         ▼
-[Frontend polling] GET /pricing-suggestions?status=PENDING
-  → Sees new suggestion for PRD-008
-  → SuggestionsDesk re-renders with new card showing DEMAND_SPIKE badge
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend
+    participant PC as ProductController
+    participant PS as ProductService
+    participant DB as Database
+    participant L as AgenticRecommendationListener
+    participant CA as CommerceAdvisorService
+    participant SR as StrategyRegistry
+    participant AI as AIPricingStrategy
+    participant PB as PromptBuilder
+    participant LG as LLMGateway
+    participant BV as BoundsValidator
+
+    User->>FE: Click "🔥 +5 Viral" on PRD-008 (Hoodie)
+    FE->>PC: POST /products/PRD-008/orders {"quantity": 5}
+    PC->>PS: simulateOrder("PRD-008", 5)
+    Note over PS: stock: 11 → 6<br/>velocity: 15 → 20
+    PS->>DB: Save product
+    PS->>DB: Record InventorySnapshot
+    Note over PS: 6 < 12 (threshold)? YES → publish StockDepletedEvent<br/>20 >= 2.5x categoryAvg? YES → publish DemandSpikeEvent
+    PS-->>PC: Updated product
+    PC-->>FE: 200 OK {"id":"PRD-008","stockLevel":6,"demandVelocity":20}
+
+    rect rgb(240, 240, 255)
+    Note over L,BV: ASYNC in background thread
+    PS-)L: onDemandSpike()
+    L->>DB: Any PENDING DEMAND_SPIKE for PRD-008? NO
+    L->>CA: generatePricingSuggestion(PRD-008, DEMAND_SPIKE)
+    CA->>SR: Get active strategy (e.g. "AI")
+    SR-->>CA: AIPricingStrategy
+    CA->>AI: evaluate()
+    AI->>PB: buildDemandSpikePrompt()
+    PB-->>AI: Rich context prompt
+    AI->>LG: callLLM(prompt) → Gemini / Groq / fallback
+    LG-->>AI: LLM response
+    AI->>BV: validatePricing() → clamp to safe range
+    BV-->>AI: price=$62.99, confidence=0.94, direction=INCREASE
+    AI-->>CA: PricingSuggestionResult
+    CA->>DB: Save PricingSuggestion (status=PENDING)
+    CA->>DB: Set product status to PRICE_REVIEW_PENDING
+    L->>CA: generateReorderSuggestion(PRD-008, DEMAND_SPIKE)
+    end
+
+    loop Every 3 seconds
+        FE->>PC: GET /pricing-suggestions?status=PENDING
+    end
+    Note over FE: Sees new suggestion for PRD-008<br/>SuggestionsDesk re-renders with DEMAND_SPIKE badge
 ```
 
 ### 8.2 Flow 2: Merchandiser Accepts a Pricing Suggestion
 
-```
-User clicks "Publish Price" on suggestion #12 (PRD-008, $54.99 → $62.99)
-         │
-         ▼
-[Frontend] PATCH /pricing-suggestions/12  {"status": "ACCEPTED"}
-         │
-         ▼
-[PricingSuggestionController] updateStatus(12, "ACCEPTED")
-         │
-         ▼
-[PricingSuggestionService.updateStatus()]
-  ├─ Load suggestion #12 from DB
-  ├─ Set suggestion.status = ACCEPTED
-  ├─ ATOMIC SIDE EFFECT: product.currentPrice = 62.99 (the recommended price)
-  ├─ product.status = ACTIVE (no longer PRICE_REVIEW_PENDING)
-  ├─ Save both product and suggestion to DB
-  └─ Return updated suggestion
-         │
-         ▼
-[HTTP Response] 200 OK → {"id":12, "status":"ACCEPTED", ...}
-         │
-         ▼
-[Frontend] Toast: "Price proposal accepted! Live retail price updated to $62.99"
-         │
-         ▼
-[Next 3s poll] loadData() → sees PRD-008 price is now $62.99, status is ACTIVE
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend
+    participant C as PricingSuggestionController
+    participant S as PricingSuggestionService
+    participant DB as Database
+
+    User->>FE: Click "Publish Price" on suggestion #12<br/>(PRD-008, $54.99 → $62.99)
+    FE->>C: PATCH /pricing-suggestions/12 {"status": "ACCEPTED"}
+    C->>S: updateStatus(12, "ACCEPTED")
+    S->>DB: Load suggestion #12
+    Note over S: suggestion.status = ACCEPTED<br/>ATOMIC SIDE EFFECT: product.currentPrice = 62.99<br/>product.status = ACTIVE (no longer PRICE_REVIEW_PENDING)
+    S->>DB: Save both product and suggestion
+    S-->>C: Updated suggestion
+    C-->>FE: 200 OK {"id":12, "status":"ACCEPTED", ...}
+    FE->>User: Toast: "Price proposal accepted! Live retail price updated to $62.99"
+    Note over FE: Next 3s poll → loadData()<br/>sees PRD-008 price is $62.99, status ACTIVE
 ```
 
 ### 8.3 Flow 3: SSE Token Streaming
 
-```
-User clicks "⚡ Stream AI" on PRD-001
-         │
-         ▼
-[Frontend] StreamModal opens
-  │ POST /products/PRD-001/suggest-pricing/stream
-  │ Headers: Accept: text/event-stream
-         │
-         ▼
-[SSEStreamController] Returns SseEmitter
-  │ Spawns CompletableFuture.runAsync(...)
-         │
-         ▼ (streaming begins...)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend (StreamModal)
+    participant SC as SSEStreamController
+    participant CA as CommerceAdvisorService
 
-Backend sends:                          Frontend receives:
-─────────────────                       ─────────────────
-event: status                           onStatus("Initializing...")
-data: "Initializing AI..."             → Modal shows "Initializing..."
+    User->>FE: Click "⚡ Stream AI" on PRD-001
+    Note over FE: StreamModal opens
+    FE->>SC: POST /products/PRD-001/suggest-pricing/stream<br/>Accept: text/event-stream
+    Note over SC: Returns SseEmitter<br/>Spawns CompletableFuture.runAsync(...)
 
-event: token                            onToken("Evaluating ")
-data: "Evaluating "                    → Modal appends "Evaluating "
+    SC-->>FE: event: status — "Initializing AI..."
+    Note over FE: onStatus() → Modal shows "Initializing..."
 
-event: token                            onToken("SKU ")
-data: "SKU "                           → Modal appends "SKU "
+    loop 30+ tokens, 80ms apart
+        SC-->>FE: event: token — "Evaluating " / "SKU " / ...
+        Note over FE: onToken() → Modal appends token
+    end
 
-... (30+ tokens, 80ms apart) ...
-
-event: complete                         onComplete({id:15, recommendedPrice:87.99,...})
-data: {"suggestion":{...}}             → Modal shows final result
-                                        → loadData() called to refresh
+    SC->>CA: generatePricingSuggestion(...)
+    CA-->>SC: PricingSuggestion
+    SC-->>FE: event: complete — {"suggestion":{...}}
+    Note over FE: onComplete() → Modal shows final result<br/>loadData() called to refresh
 ```
 
 ### 8.4 Flow 4: Runtime Strategy Switching
 
-```
-User selects "AI" from strategy dropdown (was "RULE_BASED")
-         │
-         ▼
-[Frontend] POST /api/config/strategy  {"pricingStrategy":"AI","reorderStrategy":"AI"}
-         │
-         ▼
-[StrategyConfigController] updateStrategy(request)
-         │
-         ▼
-[StrategyRegistry]
-  ├─ setActivePricingStrategy("AI")
-  │    ├─ Validate "AI" exists in the strategy map → YES
-  │    └─ activePricingStrategy.set("AI")  // AtomicReference swap
-  └─ setActiveReorderStrategy("AI")
-         │
-         ▼
-[HTTP Response] 200 OK → {"activePricingStrategy":"AI", ...}
-         │
-         ▼
-From this point, ALL new suggestions use the AI strategy.
-No restart. No code change. No redeployment.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend
+    participant C as StrategyConfigController
+    participant R as StrategyRegistry
+
+    User->>FE: Select "AI" from dropdown (was "RULE_BASED")
+    FE->>C: POST /api/config/strategy {"pricingStrategy":"AI","reorderStrategy":"AI"}
+    C->>R: setActivePricingStrategy("AI")
+    Note over R: Validate "AI" exists in strategy map → YES<br/>activePricingStrategy.set("AI") — AtomicReference swap
+    C->>R: setActiveReorderStrategy("AI")
+    C-->>FE: 200 OK {"activePricingStrategy":"AI", ...}
+    Note over R: From now on ALL new suggestions use the AI strategy.<br/>No restart. No code change. No redeployment.
 ```
 
 ---
@@ -1363,48 +1307,69 @@ const loadData = useCallback(async () => {
 
 ## 10. Database Schema Explained
 
+```mermaid
+erDiagram
+    PRODUCTS ||--o{ PRICING_SUGGESTIONS : "has (1:N)"
+    PRODUCTS ||--o{ REORDER_SUGGESTIONS : "has (1:N)"
+    PRODUCTS ||--o{ INVENTORY_SNAPSHOTS : "has (1:N) - audit trail"
+
+    PRODUCTS {
+        varchar id PK "PRD-001"
+        varchar sku UK "SKU-ELEC-001"
+        varchar name
+        varchar category "ELECTRONICS (stored as string)"
+        decimal current_price "79.99"
+        int stock_level "45"
+        int reorder_threshold "20"
+        int demand_velocity "3 (orders in last 24h)"
+        varchar status "ACTIVE"
+        decimal cost_price "nullable (Sprint 2)"
+        varchar supplier_id "nullable (Sprint 2)"
+        decimal competitor_price "nullable (Sprint 2)"
+        datetime created_at
+        datetime updated_at
+    }
+
+    PRICING_SUGGESTIONS {
+        bigint id PK
+        varchar product_id FK
+        decimal current_price
+        decimal recommended_price
+        varchar direction
+        decimal confidence
+        text reasoning
+        varchar status
+        varchar trigger_reason
+        varchar strategy
+        datetime created_at
+    }
+
+    REORDER_SUGGESTIONS {
+        bigint id PK
+        varchar product_id FK
+        int current_stock
+        int recommended_qty
+        int lead_time
+        decimal confidence
+        text reasoning
+        varchar status
+        varchar trigger_reason
+        varchar strategy
+        datetime created_at
+    }
+
+    INVENTORY_SNAPSHOTS {
+        bigint id PK
+        varchar product_id FK
+        int stock_level
+        int demand_velocity
+        varchar event_type
+        text notes
+        datetime timestamp
+    }
 ```
-┌─────────────────────────┐
-│       PRODUCTS          │
-├─────────────────────────┤
-│ id (PK)         VARCHAR │ ◄── "PRD-001"
-│ sku (UNIQUE)    VARCHAR │ ◄── "SKU-ELEC-001"
-│ name            VARCHAR │
-│ category        VARCHAR │ ◄── "ELECTRONICS" (stored as string)
-│ current_price   DECIMAL │ ◄── 79.99
-│ stock_level     INT     │ ◄── 45
-│ reorder_threshold INT   │ ◄── 20
-│ demand_velocity INT     │ ◄── 3 (orders in last 24h)
-│ status          VARCHAR │ ◄── "ACTIVE"
-│ cost_price      DECIMAL │ ◄── nullable (Sprint 2)
-│ supplier_id     VARCHAR │ ◄── nullable (Sprint 2)
-│ competitor_price DECIMAL│ ◄── nullable (Sprint 2)
-│ created_at      DATETIME│
-│ updated_at      DATETIME│
-└────────────┬────────────┘
-             │
-             │ One-to-Many (1:N)
-             │
-     ┌───────┼────────┬─────────────────┐
-     ▼       ▼        ▼                 ▼
-┌──────────┐ ┌────────────┐ ┌────────────────────┐
-│ PRICING_ │ │ REORDER_   │ │ INVENTORY_         │
-│SUGGESTIONS││SUGGESTIONS │ │ SNAPSHOTS           │
-├──────────┤ ├────────────┤ ├────────────────────┤
-│ id (PK)  │ │ id (PK)    │ │ id (PK)            │
-│product_id│ │ product_id │ │ product_id (FK)    │
-│ (FK)     │ │ (FK)       │ │ stock_level        │
-│curr_price│ │ curr_stock │ │ demand_velocity    │
-│rec_price │ │ rec_qty    │ │ event_type         │
-│direction │ │ lead_time  │ │ notes              │
-│confidence│ │ confidence │ │ timestamp          │
-│reasoning │ │ reasoning  │ └────────────────────┘
-│status    │ │ status     │   Audit trail:
-│trigger   │ │ trigger    │   Every stock change
-│strategy  │ │ strategy   │   is recorded here
-│created_at│ │ created_at │
-└──────────┘ └────────────┘
-```
+
+> **Audit trail:** `INVENTORY_SNAPSHOTS` records every stock change.
 
 ---
 
