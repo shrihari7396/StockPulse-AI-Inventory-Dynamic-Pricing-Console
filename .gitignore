@@ -9,11 +9,11 @@ target/
 dist/
 build/
 Backend/target/
-frontend/dist/
+Frontend/dist/
 
 # Dependencies
 node_modules/
-frontend/node_modules/
+Frontend/node_modules/
 
 # IDE & Editor files
 .idea/

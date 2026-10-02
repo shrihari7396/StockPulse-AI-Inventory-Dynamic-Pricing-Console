@@ -84,7 +84,7 @@ Backend services:
 Open a second terminal:
 
 ```bash
-cd frontend
+cd Frontend
 npm install
 npm run dev
 ```

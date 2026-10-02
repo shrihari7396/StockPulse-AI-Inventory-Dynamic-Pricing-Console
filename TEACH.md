@@ -255,7 +255,7 @@ ZYCUS-PROJECT/
 │       │
 │       └── test/                                    # Test suite
 │
-└── frontend/                # ← REACT APPLICATION
+└── Frontend/                # ← REACT APPLICATION
     ├── package.json         # Dependencies (react, react-dom, vite)
     ├── vite.config.js       # Dev server config with API proxy
     ├── index.html           # HTML shell loaded by browser
@@ -1417,7 +1417,7 @@ H2 Console: `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:stockpuls
 
 ```powershell
 # Open a SECOND terminal
-cd frontend
+cd Frontend
 npm install       # First time only
 npm run dev
 ```
