@@ -5,15 +5,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import org.zycus.domain.model.Product;
-import org.zycus.domain.model.ProductStatus;
-import org.zycus.domain.model.SuggestionStatus;
-import org.zycus.domain.repository.PricingSuggestionRepository;
-import org.zycus.domain.repository.ProductRepository;
-import org.zycus.domain.repository.ReorderSuggestionRepository;
-import org.zycus.service.PricingSuggestionService;
-import org.zycus.service.ProductService;
-import org.zycus.service.ReorderSuggestionService;
+
+import com.zycus.domain.model.Product;
+import com.zycus.domain.model.ProductStatus;
+import com.zycus.domain.model.SuggestionStatus;
+import com.zycus.domain.repository.PricingSuggestionRepository;
+import com.zycus.domain.repository.ProductRepository;
+import com.zycus.domain.repository.ReorderSuggestionRepository;
+import com.zycus.service.PricingSuggestionService;
+import com.zycus.service.ProductService;
+import com.zycus.service.ReorderSuggestionService;
 
 import java.math.BigDecimal;
 

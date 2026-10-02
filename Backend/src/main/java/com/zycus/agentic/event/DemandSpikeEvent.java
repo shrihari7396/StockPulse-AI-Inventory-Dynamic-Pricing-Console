@@ -1,0 +1,12 @@
+package com.zycus.agentic.event;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public class DemandSpikeEvent {
+    private final String productId;
+    private final int currentVelocity;
+    private final double categoryAverage;
+}

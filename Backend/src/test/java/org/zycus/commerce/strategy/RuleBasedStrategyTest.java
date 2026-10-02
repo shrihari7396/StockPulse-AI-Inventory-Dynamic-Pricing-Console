@@ -3,11 +3,16 @@ package org.zycus.commerce.strategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.zycus.commerce.context.CommerceContext;
-import org.zycus.domain.model.Category;
-import org.zycus.domain.model.ChangeDirection;
-import org.zycus.domain.model.Product;
-import org.zycus.domain.model.ProductStatus;
+
+import com.zycus.commerce.context.CommerceContext;
+import com.zycus.commerce.strategy.PricingSuggestionResult;
+import com.zycus.commerce.strategy.ReorderSuggestionResult;
+import com.zycus.commerce.strategy.RuleBasedPricingStrategy;
+import com.zycus.commerce.strategy.RuleBasedReorderStrategy;
+import com.zycus.domain.model.Category;
+import com.zycus.domain.model.ChangeDirection;
+import com.zycus.domain.model.Product;
+import com.zycus.domain.model.ProductStatus;
 
 import java.math.BigDecimal;
 
